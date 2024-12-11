@@ -11,21 +11,26 @@ Future<void> callbackDispatcher() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   backgroundChannel.setMethodCallHandler((call) async {
-    final args = call.arguments;
+    try {
+      debugPrint('Callback started.');
+      final args = call.arguments;
+      final callback = PluginUtilities.getCallbackFromHandle(
+        CallbackHandle.fromRawHandle(args[0]),
+      ) as FutureOr<void> Function(Uri?);
 
-    final callback = PluginUtilities.getCallbackFromHandle(
-      CallbackHandle.fromRawHandle(args[0]),
-    ) as FutureOr<void> Function(Uri?);
+      final rawUri = args[1] as String?;
 
-    final rawUri = args[1] as String?;
-
-    Uri? uri;
-    if (rawUri != null) {
-      uri = Uri.parse(rawUri);
+      Uri? uri;
+      if (rawUri != null) {
+        uri = Uri.parse(rawUri);
+      }
+      debugPrint('Callback call $uri.');
+      await callback.call(uri);
+      debugPrint('Callback ended.');
+    } catch (e, stack) {
+      debugPrint('Error in callbackDispatcher: $e\n$stack');
     }
-
-    await callback.call(uri);
+    return '';
   });
-
   await backgroundChannel.invokeMethod('HomeWidget.backgroundInitialized');
 }
